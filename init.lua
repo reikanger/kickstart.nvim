@@ -593,7 +593,7 @@ require('lazy').setup({
       local servers = {
         -- clangd = {},
         -- gopls = {},
-        -- pyright = {},
+        pyright = {},
         -- rust_analyzer = {},
         -- ... etc. See `:help lspconfig-all` for a list of all the pre-configured LSPs
         --
@@ -601,9 +601,33 @@ require('lazy').setup({
         --    https://github.com/pmizio/typescript-tools.nvim
         --
         -- But for many setups, the LSP (`ts_ls`) will work just fine
-        -- ts_ls = {},
+        ts_ls = {},
         --
 
+        nixd = {
+          cmd = { 'nixd' },
+          settings = {
+            nixd = {
+              nixpkgs = {
+                expr = 'import (builtins.getFlake(toString ./.)).inputs.nixpkgs { }',
+              },
+              formatting = {
+                command = { 'alejandra' }, -- or nixfmt or nixpkgs-fmt
+              },
+              options = {
+                nixos = {
+                  expr = 'let flake = builtins.getFlake(toString ./.); in flake.nixosConfigurations.nz.options',
+                },
+                home_manager = {
+                  expr = 'let flake = builtins.getFlake(toString ./.); in flake.homeConfigurations."sab@mbp16".options',
+                },
+                darwin = {
+                  expr = 'let flake = builtins.getFlake(toString ./.); in flake.darwinConfigurations.mbp16.options',
+                },
+              },
+            },
+          },
+        },
         lua_ls = {
           -- cmd = { ... },
           -- filetypes = { ... },
@@ -764,7 +788,7 @@ require('lazy').setup({
       appearance = {
         -- 'mono' (default) for 'Nerd Font Mono' or 'normal' for 'Nerd Font'
         -- Adjusts spacing to ensure icons are aligned
-        nerd_font_variant = 'mono',
+        nerd_font_variant = 'normal',
       },
 
       completion = {
