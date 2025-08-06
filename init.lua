@@ -36,6 +36,20 @@ vim.o.showmode = false
 --  See `:help 'clipboard'`
 vim.schedule(function()
   vim.o.clipboard = 'unnamedplus'
+  if vim.env.WAYLAND_DISPLAY then
+    vim.g.clipboard = {
+      name = 'wl-clipboard-provider',
+      copy = {
+        ['+'] = 'wl-copy',
+        ['*'] = 'wl-copy',
+      },
+      paste = {
+        ['+'] = 'wl-paste --no-newline',
+        ['*'] = 'wl-paste --no-newline',
+      },
+      cache_enabled = 1,
+    }
+  end
 end)
 
 -- Enable break indent
@@ -402,15 +416,19 @@ require('lazy').setup({
       -- Automatically install LSPs and related tools to stdpath for Neovim
       -- Mason must be loaded before its dependents so we need to set it up here.
       -- NOTE: `opts = {}` is the same as calling `require('mason').setup({})`
-      { 'mason-org/mason.nvim', opts = {} },
-      'mason-org/mason-lspconfig.nvim',
-      'WhoIsSethDaniel/mason-tool-installer.nvim',
+      --{ 'mason-org/mason.nvim', opts = {} },
+      --'mason-org/mason-lspconfig.nvim',
+      --'WhoIsSethDaniel/mason-tool-installer.nvim',
 
       -- Useful status updates for LSP.
       { 'j-hui/fidget.nvim', opts = {} },
 
       -- Allows extra capabilities provided by blink.cmp
       'saghen/blink.cmp',
+
+      -- Dependencies for autocompletion (disabled, we're using blink.cmp)
+      --'hrsh7th/nvim-cmp',
+      --'hrsh7th/cmp-nvim-lsp',
     },
     config = function()
       -- Brief aside: **What is LSP?**
@@ -593,7 +611,12 @@ require('lazy').setup({
       local servers = {
         -- clangd = {},
         -- gopls = {},
-        pyright = {},
+        pyright = {}, -- Python LSP
+        tsserver = {}, -- TypeScript/JavaScript LSP
+        -- configure html, cssls, jsonls (from vscode-langservers-extracted)
+        html = {},
+        cssls = {},
+        jsonls = {},
         -- rust_analyzer = {},
         -- ... etc. See `:help lspconfig-all` for a list of all the pre-configured LSPs
         --
@@ -602,43 +625,33 @@ require('lazy').setup({
         --
         -- But for many setups, the LSP (`ts_ls`) will work just fine
         ts_ls = {},
-        --
 
-        nixd = {
-          cmd = { 'nixd' },
+        -- Configure nil_ls (Nix LSP)
+        nil_ls = {
           settings = {
-            nixd = {
-              nixpkgs = {
-                expr = 'import (builtins.getFlake(toString ./.)).inputs.nixpkgs { }',
-              },
+            ['nil'] = {
               formatting = {
-                command = { 'alejandra' }, -- or nixfmt or nixpkgs-fmt
-              },
-              options = {
-                nixos = {
-                  expr = 'let flake = builtins.getFlake(toString ./.); in flake.nixosConfigurations.nz.options',
-                },
-                home_manager = {
-                  expr = 'let flake = builtins.getFlake(toString ./.); in flake.homeConfigurations."sab@mbp16".options',
-                },
-                darwin = {
-                  expr = 'let flake = builtins.getFlake(toString ./.); in flake.darwinConfigurations.mbp16.options',
-                },
+                command = 'nixpkgs-fmt',
               },
             },
           },
         },
+
         lua_ls = {
           -- cmd = { ... },
           -- filetypes = { ... },
           -- capabilities = {},
           settings = {
             Lua = {
+              telemetry = { enable = false },
               completion = {
                 callSnippet = 'Replace',
               },
               -- You can toggle below to ignore Lua_LS's noisy `missing-fields` warnings
-              -- diagnostics = { disable = { 'missing-fields' } },
+              diagnostics = {
+                disable = { 'missing-fields' },
+                globals = { 'vim' },
+              },
             },
           },
         },
@@ -661,22 +674,22 @@ require('lazy').setup({
       vim.list_extend(ensure_installed, {
         'stylua', -- Used to format Lua code
       })
-      require('mason-tool-installer').setup { ensure_installed = ensure_installed }
+      --require('mason-tool-installer').setup { ensure_installed = ensure_installed }
 
-      require('mason-lspconfig').setup {
-        ensure_installed = {}, -- explicitly set to an empty table (Kickstart populates installs via mason-tool-installer)
-        automatic_installation = false,
-        handlers = {
-          function(server_name)
-            local server = servers[server_name] or {}
-            -- This handles overriding only values explicitly passed
-            -- by the server configuration above. Useful when disabling
-            -- certain features of an LSP (for example, turning off formatting for ts_ls)
-            server.capabilities = vim.tbl_deep_extend('force', {}, capabilities, server.capabilities or {})
-            require('lspconfig')[server_name].setup(server)
-          end,
-        },
-      }
+      --require('mason-lspconfig').setup {
+      --  ensure_installed = {}, -- explicitly set to an empty table (Kickstart populates installs via mason-tool-installer)
+      --  automatic_installation = false,
+      --  handlers = {
+      --    function(server_name)
+      --      local server = servers[server_name] or {}
+      --      -- This handles overriding only values explicitly passed
+      --      -- by the server configuration above. Useful when disabling
+      --      -- certain features of an LSP (for example, turning off formatting for ts_ls)
+      --      server.capabilities = vim.tbl_deep_extend('force', {}, capabilities, server.capabilities or {})
+      --      require('lspconfig')[server_name].setup(server)
+      --    end,
+      --  },
+      --}
     end,
   },
 
